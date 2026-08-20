@@ -8,9 +8,9 @@ param nsgTags types.tags_t
 param createNetApp bool 
 param createLustre bool 
 var deployBastion = network.bastion
-var createDatabase = false //update once MySQL capacity is available
 param natGatewayId string 
 param databaseConfig types.databaseConfig_t
+var createDatabase = databaseConfig.type == 'new'
 var create_private_endpoint = databaseConfig.type == 'privateEndpoint'
 
 //purpose: calculate 2^n for n between 0 and 8 or return 0 if n<0
@@ -224,7 +224,7 @@ var nsgRules = items(union(
   deployBastion ? nsg_rules.bastion : {},
   createNetApp ? nsg_rules.anf : {},
   createLustre ? nsg_rules.lustre : {},
-  createDatabase ? nsg_rules.mysql : {}))
+  (createDatabase || create_private_endpoint) ? nsg_rules.mysql : {}))
 var servicePorts = {
   All: ['0-65535']
   Bastion: ['8080','5701']

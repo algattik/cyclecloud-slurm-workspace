@@ -210,7 +210,7 @@ module ccwStorage './storage.bicep' = {
   }
 }
 
-var create_database = contains(slurmSettings, 'databaseAdminPassword')
+var create_database = databaseConfig.type == 'new'
 var db_name = 'ccw-mysqldb-${uniqueString(az.resourceGroup().id)}'
 
 module mySQLccw './mysql.bicep' = if (create_database) {
@@ -219,7 +219,7 @@ module mySQLccw './mysql.bicep' = if (create_database) {
     location: location
     tags: getTags('Microsoft.DBforMySQL/flexibleServers', tags)
     Name: db_name
-    adminUser: adminUsername
+    adminUser: databaseConfig.?databaseUser ?? adminUsername
     adminPassword: databaseAdminPassword
     subnetId: subnets.?database ?? ''
   }
@@ -390,10 +390,9 @@ output publicKey string = publicKey
 output adminUsername string = adminUsername
 output subscriptionId string = subscription().subscriptionId
 output tenantId string = subscription().tenantId
-// output databaseFQDN string = create_database ? mySQLccw.outputs.fqdn : ''
 output databaseInfo types.databaseOutput_t = databaseConfig.type != 'disabled' ?{
   databaseUser: databaseConfig.?databaseUser
-  url: databaseConfig.type == 'fqdn' ? databaseConfig.?fqdn : databaseConfig.type == 'privateIp' ? databaseConfig.?privateIp : ccwNetwork!.outputs.?databaseFQDN 
+  url: databaseConfig.type == 'fqdn' ? databaseConfig.?fqdn : databaseConfig.type == 'privateIp' ? databaseConfig.?privateIp : databaseConfig.type == 'new' ? mySQLccw!.outputs.fqdn : ccwNetwork!.outputs.?databaseFQDN 
 } : {}
 output azureEnvironment string = envNameToCloudMap[environment().name]
 output nodeArrayTags types.tags_t = tags[?'Node Array'] ?? {}
